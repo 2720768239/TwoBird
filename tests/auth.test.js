@@ -1,48 +1,40 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const request = require('supertest');
 
-const { createApp } = require('../server/app');
+const { cookieFromResponse, jsonRequest, resetNextDb } = require('./route-test-utils');
 
-test('registers, logs in, and exposes the current user', async () => {
-  const { app, close } = await createApp({ dbPath: ':memory:', testMode: true });
-  try {
-    const agent = request.agent(app);
+test('registers, logs in, and exposes the current user through Next API routes', async () => {
+  await resetNextDb();
+  const registerRoute = await import('../src/app/api/auth/register/route.js');
+  const meRoute = await import('../src/app/api/auth/me/route.js');
+  const logoutRoute = await import('../src/app/api/auth/logout/route.js');
 
-    const registerRes = await agent
-      .post('/api/auth/register')
-      .send({ username: 'alice', password: 'Password123!' });
+  const registerRes = await registerRoute.POST(jsonRequest({ username: 'alice', password: 'Password123!' }));
+  assert.equal(registerRes.status, 201);
+  assert.equal((await registerRes.json()).user.username, 'alice');
 
-    assert.equal(registerRes.statusCode, 201);
-    assert.equal(registerRes.body.user.username, 'alice');
+  const cookie = cookieFromResponse(registerRes);
+  assert.match(cookie, /^twobird_token=/);
 
-    const meRes = await agent.get('/api/auth/me');
-    assert.equal(meRes.statusCode, 200);
-    assert.equal(meRes.body.user.username, 'alice');
+  const meRes = await meRoute.GET(jsonRequest({}, cookie));
+  assert.equal(meRes.status, 200);
+  assert.equal((await meRes.json()).user.username, 'alice');
 
-    const logoutRes = await agent.post('/api/auth/logout');
-    assert.equal(logoutRes.statusCode, 204);
+  const logoutRes = await logoutRoute.POST();
+  assert.equal(logoutRes.status, 204);
 
-    const afterLogoutRes = await agent.get('/api/auth/me');
-    assert.equal(afterLogoutRes.statusCode, 401);
-  } finally {
-    await close();
-  }
+  const afterLogoutRes = await meRoute.GET(jsonRequest());
+  assert.equal(afterLogoutRes.status, 401);
 });
 
-test('rejects invalid login credentials', async () => {
-  const { app, close } = await createApp({ dbPath: ':memory:', testMode: true });
-  try {
-    const agent = request.agent(app);
-    await agent.post('/api/auth/register').send({ username: 'bob', password: 'Password123!' });
+test('rejects invalid login credentials through Next API routes', async () => {
+  await resetNextDb();
+  const registerRoute = await import('../src/app/api/auth/register/route.js');
+  const loginRoute = await import('../src/app/api/auth/login/route.js');
 
-    const loginRes = await agent
-      .post('/api/auth/login')
-      .send({ username: 'bob', password: 'wrong-password' });
+  await registerRoute.POST(jsonRequest({ username: 'bob', password: 'Password123!' }));
 
-    assert.equal(loginRes.statusCode, 401);
-    assert.equal(loginRes.body.error, 'Invalid credentials');
-  } finally {
-    await close();
-  }
+  const loginRes = await loginRoute.POST(jsonRequest({ username: 'bob', password: 'wrong-password' }));
+  assert.equal(loginRes.status, 401);
+  assert.equal((await loginRes.json()).error, 'Invalid credentials');
 });

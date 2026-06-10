@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "description": "TwoBird learning app with auth, persistence, and production deployment.",
-  "main": "server/index.js",
+  "main": "src/app/page.js",
   "scripts": {
-    "dev": "node --watch server/index.js",
-    "start": "node server/index.js",
-    "test": "node --test tests",
-    "lint": "node --check server/index.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test tests/auth.test.js tests/user-state.test.js tests/next-structure.test.js",
+    "lint": "node scripts/check-js-syntax.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
@@ -16,7 +17,10 @@
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "next": "^16.1.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "supertest": "^7.1.4"

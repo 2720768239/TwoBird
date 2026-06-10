@@ -1,9 +1,9 @@
 # TwoBird
 
-TwoBird is a learning app for the Anthropic article series. It now runs as a small production-ready Node.js app with:
+TwoBird is a learning app for the Anthropic article series. It now runs as a small production-ready Next.js app with:
 
 - account/password login
-- SQLite persistence
+- SQLite persistence through Next.js route handlers
 - reading progress tracking
 - per-article notes
 - article favorites
@@ -16,7 +16,7 @@ TwoBird is a learning app for the Anthropic article series. It now runs as a sma
 npm install
 ```
 
-2. Start the app:
+2. Start the Next.js app:
 
 ```bash
 npm run dev
@@ -34,9 +34,10 @@ npm test
 
 1. Copy `.env.example` to `.env` and set a strong `JWT_SECRET`.
 2. Make sure the server can create `data/twobird.db`.
-3. Start the app:
+3. Build and start the app:
 
 ```bash
+npm run build
 npm start
 ```
 
@@ -47,3 +48,4 @@ npm start
 - The app stores the login token in an httpOnly cookie.
 - SQLite is used by default for simplicity on a single Alibaba Cloud server.
 - The database file is created automatically if the `data/` directory does not exist.
+- The old Express server files are kept during the migration, but the main app now lives under `src/app`.
