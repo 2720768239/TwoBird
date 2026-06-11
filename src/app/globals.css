@@ -96,17 +96,25 @@
         .para-en pre code{background:transparent;border:none;color:inherit;padding:0}
         .para-en a{color:var(--p);text-decoration:none;font-weight:500}
         .para-en a:hover{text-decoration:underline}
-        .para-en img{display:block;margin:8px 0;max-height:520px;object-fit:contain}
+        .para-en img{display:block;margin:8px 0;max-width:100%;width:100%;height:auto;max-height:min(520px,70vh);object-fit:contain;border-radius:8px;cursor:zoom-in;-webkit-user-drag:none;user-select:none;touch-action:manipulation}
         .para-en h2{font-size:20px;color:var(--p);margin:20px 0 8px;padding-top:12px;border-top:2px solid var(--b)}
         .para-en h2:first-child{margin-top:0;padding-top:0;border-top:none}
         .para-en h3{font-size:17px;color:var(--p);margin:16px 0 6px}
         .para-en h4{font-size:16px;color:var(--d);margin:12px 0 4px;font-weight:600}
         .para-en ul,.para-en ol{margin:6px 0 6px 20px;padding:0}
         .para-en li{margin-bottom:4px}
-        .para-figure{margin:12px 0;text-align:center}
-        .para-figure figcaption{font-size:13px;color:var(--g);margin-top:6px}
+        .para-figure{margin:12px 0;text-align:center;max-width:100%;overflow:hidden}
+        .para-figure img{display:block;max-width:100%;width:100%;height:auto;max-height:min(520px,70vh);object-fit:contain;border-radius:8px;cursor:zoom-in;-webkit-user-drag:none;user-select:none;touch-action:manipulation}
+        .para-figure figcaption{font-size:13px;color:var(--g);margin-top:6px;padding:0 4px;line-height:1.5;word-break:break-word}
         .paragraph-heading{padding-top:4px;padding-bottom:2px}
-        .paragraph-figure{padding-top:6px;padding-bottom:6px}
+        .paragraph-figure{padding-top:6px;padding-bottom:6px;overflow:hidden}
+        .reading-content{max-width:100%;overflow-x:hidden}
+        .image-lightbox{position:fixed;inset:0;z-index:400;background:rgba(8,10,18,.92);display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding:12px}
+        .image-lightbox-toolbar{display:flex;justify-content:flex-end;gap:8px;padding:4px 4px 10px}
+        .image-lightbox-btn{border:none;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:#fff;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);cursor:pointer}
+        .image-lightbox-viewport{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
+        .image-lightbox-image{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;will-change:transform}
+        .image-lightbox-hint{text-align:center;color:rgba(255,255,255,.72);font-size:12px;padding:10px 0 4px}
         .para-cn{font-size:15px;line-height:1.8;color:var(--g);margin-top:8px;padding-top:8px;border-top:1px dashed var(--b);display:none}
         .para-cn.show{display:block;animation:fadeIn .3s}
         .para-controls{position:absolute;top:10px;right:10px;display:flex;gap:3px;opacity:0;transition:opacity .2s}
@@ -173,18 +181,22 @@
             .menu-btn{display:block}
             .top-bar h1{font-size:16px}
             .btn{padding:5px 8px;font-size:13px}
-            .layout{flex-direction:column;height:auto}
+            .layout{flex-direction:column;height:auto;min-height:calc(100vh - 56px)}
             .sidebar{position:fixed;top:0;left:0;width:280px;height:100vh;z-index:200;transform:translateX(-100%);box-shadow:4px 0 20px rgba(0,0,0,.2)}
             .sidebar.open{transform:translateX(0)}
-            .main{padding:12px}
+            .main{padding:10px;overflow-x:hidden}
+            .main-card{overflow:hidden}
+            .tab-content{padding:14px;overflow-x:hidden}
             .article-header h2{font-size:19px}
             .para-controls{position:static;opacity:1;justify-content:flex-end;margin-top:6px}
-            .paragraph{padding-right:10px}
-            .para-en{font-size:15px;line-height:1.8}
-            .para-cn{font-size:14px}
+            .paragraph{padding:10px 8px;overflow:hidden;word-break:break-word}
+            .para-en{font-size:15px;line-height:1.8;overflow-wrap:anywhere}
+            .para-en img,.para-figure img{max-height:none;width:100%;margin:10px 0}
+            .para-cn{font-size:14px;overflow-wrap:anywhere}
             .concept-grid{grid-template-columns:1fr}
             .tab-nav button{padding:8px 10px;font-size:13px}
             .home-hero{padding:20px 14px}
             .home-hero h2{font-size:20px}
+            .image-lightbox{padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
         }
         @media(max-width:480px){.top-bar{padding:10px 12px}.top-bar h1{font-size:15px}.ctrl .btn-text{display:none}}

@@ -11,11 +11,13 @@
     "test": "node --test tests/auth.test.js tests/user-state.test.js tests/next-structure.test.js",
     "lint": "node scripts/check-js-syntax.js",
     "generate:aids": "node scripts/generate-course-aids.js",
-    "scaffold:translations": "node scripts/scaffold-paragraph-translations.js"
+    "scaffold:translations": "node scripts/scaffold-paragraph-translations.js",
+    "translate:paragraphs": "node scripts/translate-paragraphs.js"
   },
   "dependencies": {
-    "better-sqlite3": "^11.8.1",
+    "@vitalets/google-translate-api": "^9.2.1",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.8.1",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
     "helmet": "^8.1.0",

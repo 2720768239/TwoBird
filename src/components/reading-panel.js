@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { ImageLightbox } from './image-lightbox';
 import { isTranslatableParagraph } from '@/lib/paragraph-utils';
 
 export function ReadingPanel({
@@ -13,6 +15,27 @@ export function ReadingPanel({
   onToggleNote,
   onNoteChange,
 }) {
+  const contentRef = useRef(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root) return undefined;
+
+    const onClick = (event) => {
+      const image = event.target.closest('img');
+      if (!image || !root.contains(image)) return;
+      event.preventDefault();
+      setLightboxImage({
+        src: image.currentSrc || image.src,
+        alt: image.alt || '',
+      });
+    };
+
+    root.addEventListener('click', onClick);
+    return () => root.removeEventListener('click', onClick);
+  }, [article?.id, article?.paragraphs?.length]);
+
   if (!article?.paragraphs?.length) {
     return (
       <div className="coming-soon">
@@ -32,6 +55,7 @@ export function ReadingPanel({
 
   return (
     <>
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
       <div className="article-header">
         <h2>{article.title}</h2>
         <div className="article-meta">
@@ -47,6 +71,7 @@ export function ReadingPanel({
         </div>
       </div>
 
+      <div className="reading-content" ref={contentRef}>
       {article.paragraphs.map((paragraph, index) => {
         const translated = translatedParagraphs.has(index);
         const highlighted = highlightedParagraphs.has(index);
@@ -80,6 +105,7 @@ export function ReadingPanel({
           </div>
         );
       })}
+      </div>
     </>
   );
 }

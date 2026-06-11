@@ -470,6 +470,12 @@ function loadParagraphTranslations(fileName) {
   const jsPath = path.join(translationsDir, `${slug}.zh.js`);
   const jsonPath = path.join(translationsDir, `${slug}.zh.json`);
 
+  if (fs.existsSync(jsonPath)) {
+    return normalizeParagraphTranslations(
+      JSON.parse(fs.readFileSync(jsonPath, 'utf8').replace(/^\uFEFF/, '')),
+    );
+  }
+
   if (fs.existsSync(jsPath)) {
     const context = {};
     const source = fs
@@ -477,10 +483,6 @@ function loadParagraphTranslations(fileName) {
       .replace(/^export const paragraphsZh\s*=\s*/m, 'paragraphsZh = ');
     vm.runInNewContext(source, context);
     return normalizeParagraphTranslations(context.paragraphsZh);
-  }
-
-  if (fs.existsSync(jsonPath)) {
-    return normalizeParagraphTranslations(JSON.parse(fs.readFileSync(jsonPath, 'utf8')));
   }
 
   return {};

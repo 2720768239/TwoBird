@@ -1,0 +1,222 @@
+[
+  {
+    "i": 0,
+    "kind": "text",
+    "en": "As agents grow more capable, so does their potential blast radius. The engineering question is how to cap it. Here's what we've learned building containment for claude.ai, Claude Code, and Cowork."
+  },
+  {
+    "i": 1,
+    "kind": "text",
+    "en": "Twelve months ago, we'd have rejected out of hand the idea of granting Claude access sufficient to take down an internal Anthropic service. Today that level of access is routine, and Anthropic develop"
+  },
+  {
+    "i": 2,
+    "kind": "image",
+    "en": "When bounds can be placed on the relative damage of an autonomous agent—such as through control over its environment—high-utility capabilities can motivate deployment. Claude Mythos Preview is an exam"
+  },
+  {
+    "i": 3,
+    "kind": "text",
+    "en": "There are broadly two ways to do this."
+  },
+  {
+    "i": 4,
+    "kind": "text",
+    "en": "The first is to supervise the agent's behavior via a human-in-the-loop. Claude Code previously protected against agents taking unintended actions by asking users for permission at each turn. Theoretic"
+  },
+  {
+    "i": 5,
+    "kind": "text",
+    "en": "The second approach to capping the blast radius—and the focus of much of this post—is containment. Rather than supervising what the agent does, we supervise what it's able to do by enforcing access bo"
+  },
+  {
+    "i": 6,
+    "kind": "text",
+    "en": "Over the past two years, we've shipped three primary agentic products: claude.ai , Claude Code, and Claude Cowork. Each serves a different audience, requiring a different containment architecture. Thi"
+  },
+  {
+    "i": 7,
+    "kind": "heading",
+    "en": "Three types of risk, three components of defense"
+  },
+  {
+    "i": 8,
+    "kind": "text",
+    "en": "Security risks to agents fall into one of three categories:"
+  },
+  {
+    "i": 9,
+    "kind": "text",
+    "en": "User misuse: A user—either maliciously or through carelessness—directs the agent to do something harmful. This includes everything from asking the agent to bypass a check they find annoying, to runnin"
+  },
+  {
+    "i": 10,
+    "kind": "text",
+    "en": "Model misbehavior: The agent takes a harmful action no one asked for. As our models have improved, they have become more aligned on most behavior evaluations, but this doesn't mean risk necessarily sh"
+  },
+  {
+    "i": 11,
+    "kind": "text",
+    "en": "At Anthropic, we've seen Claude models &quot;helpfully&quot; escape a sandbox in order to complete a task, examine git history to find answers to a coding test , and spontaneously identify the benchma"
+  },
+  {
+    "i": 12,
+    "kind": "text",
+    "en": "External attackers: The agent is attacked through external vectors such as tools, files, or network access. This category includes both prompt injection and conventional attacks on the agent's runtime"
+  },
+  {
+    "i": 13,
+    "kind": "text",
+    "en": "When building containment and defense systems, we apply defenses to three main components:"
+  },
+  {
+    "i": 14,
+    "kind": "text",
+    "en": "The environment in which the agent runs. We constrain where and how an agent can act with process sandboxes, VMs, filesystem boundaries, and egress controls. The goal is to set a hard boundary on what"
+  },
+  {
+    "i": 15,
+    "kind": "text",
+    "en": "A tight perimeter also means you can relax oversight. Claude Code's reference devcontainer exists precisely so that the agent can run unattended, without per-action approvals."
+  },
+  {
+    "i": 16,
+    "kind": "text",
+    "en": "The model the agent consults. The mechanisms here include system prompts, classifiers, probes, and training modifications. Because models are probabilistic, these shape only what the agent tends to do"
+  },
+  {
+    "i": 17,
+    "kind": "text",
+    "en": "These defenses are strong. On Gray Swan's Agent Red Teaming benchmark, which tests susceptibility to prompt injection, Claude Opus 4.7 holds attack success to roughly 0.1% on single attempts, and arou"
+  },
+  {
+    "i": 18,
+    "kind": "text",
+    "en": "The external content the agent can reach. MCP servers, third-party plugins, and web search tools all feed content into the agent's context from sources you don't control. An audited connector isn't th"
+  },
+  {
+    "i": 19,
+    "kind": "text",
+    "en": "Defenses should overlap and complement each other. When environmental defenses aren't available, the model layer has to pick up the slack (this is precisely what Claude Code's auto mode is designed fo"
+  },
+  {
+    "i": 20,
+    "kind": "image",
+    "en": "Three components to defend: the model, the environment in which it runs, and the external content the agent can reach."
+  },
+  {
+    "i": 21,
+    "kind": "heading",
+    "en": "Patterns for containing agents"
+  },
+  {
+    "i": 22,
+    "kind": "text",
+    "en": "Focusing on the environment layer, we describe three isolation patterns and how they're tailored for each Claude platform— claude.ai , Claude Code, and Cowork. We arrived at each design gradually, aft"
+  },
+  {
+    "i": 23,
+    "kind": "heading",
+    "en": "Pattern 1: The ephemeral container (claude.ai code execution)"
+  },
+  {
+    "i": 24,
+    "kind": "text",
+    "en": "Though best known as a chat interface, claude.ai also writes and runs code, generates files, and calls connectors. When Claude runs code inside claude.ai, it does so in a gVisor container on isolated "
+  },
+  {
+    "i": 25,
+    "kind": "text",
+    "en": "This also makes claude.ai subject to a more traditional threat model. We're not protecting user machines from agents; we're protecting our own infrastructure and each tenant from one another. Our pre-"
+  },
+  {
+    "i": 26,
+    "kind": "text",
+    "en": "That work reinforced the oldest lesson in security: the weakest layer is the one you built yourself. gVisor and seccomp have been hardened against well-resourced adversaries for far longer than agenti"
+  },
+  {
+    "i": 27,
+    "kind": "heading",
+    "en": "Pattern 2: The human-in-the-loop sandbox (Claude Code)"
+  },
+  {
+    "i": 28,
+    "kind": "text",
+    "en": "Claude Code runs on a user's machine and has access to their filesystem, shell, and network. Without this, coding agents have limited usefulness, so it's imperative to find a way to grant that access "
+  },
+  {
+    "i": 29,
+    "kind": "text",
+    "en": "One approach is to rely on a human-in-the-loop. This is only a tractable solution for Claude Code because the average user is a developer who's familiar with coding environments: they can read bash, t"
+  },
+  {
+    "i": 30,
+    "kind": "text",
+    "en": "However, as mentioned, approval fatigue showed up within weeks. Ironically, this meant that a feature originally designed to provide oversight could arguably have the opposite effect—some users might "
+  },
+  {
+    "i": 31,
+    "kind": "text",
+    "en": "Our anonymized usage data also showed that experienced users auto-approve roughly twice as often as new users, but they also interrupt the agent mid-execution more frequently. Instead of gating indivi"
+  },
+  {
+    "i": 32,
+    "kind": "heading",
+    "en": "Risk we missed: Everything before the trust dialog"
+  },
+  {
+    "i": 33,
+    "kind": "text",
+    "en": "Between mid-2025 and January 2026, we received reports of vulnerabilities in Claude Code through our responsible disclosure program. Three of these vulnerabilities targeted code that executes before t"
+  },
+  {
+    "i": 34,
+    "kind": "text",
+    "en": "The fix in each case had the same shape: defer parsing and execution of project-local configuration until after the user accepts the trust prompt. If you're building something similar, treat project-o"
+  },
+  {
+    "i": 35,
+    "kind": "heading",
+    "en": "Risk we missed: The user as an injection vector"
+  },
+  {
+    "i": 36,
+    "kind": "text",
+    "en": "In February 2026, during a controlled internal red-team exercise, a researcher successfully phished an employee into launching Claude Code with a malicious prompt. The phish looked like ordinary colla"
+  },
+  {
+    "i": 37,
+    "kind": "text",
+    "en": "This is a direct prompt injection—the attacker's instructions arrived through the user, not through tool output or fetched content. Our model-layer defenses anchor on user intent—when the user is the "
+  },
+  {
+    "i": 38,
+    "kind": "text",
+    "en": "The only defense that holds in this situation is the environment, specifically egress controls that block the POST regardless of intent and filesystem boundaries that keep ~/.aws out of reach in the f"
+  },
+  {
+    "i": 39,
+    "kind": "text",
+    "en": "(When we shared the working prompt in internal Slack for discussion, someone pointed out that some internal agents read Slack. The payload was now ambient. We added a canary string to the thread so we"
+  },
+  {
+    "i": 40,
+    "kind": "heading",
+    "en": "Pattern 3: The local VM (Claude Cowork)"
+  },
+  {
+    "i": 41,
+    "kind": "text",
+    "en": "Claude Cowork runs on a user's desktop with access to a workspace folder selected by the user. Because the platform is built for general knowledge work, not software engineering, the average user is m"
+  },
+  {
+    "i": 42,
+    "kind": "text",
+    "en": "As a result, the human-in-the-loop sandbox strategy may not transfer; a non-technical knowledge worker shouldn't be expected to judge bash incantations such as find . -name &quot;*.tmp&quot; -exec rm "
+  },
+  {
+    "i": 43,
+    "kind": "text",
+    "en": "To enable this, our first version of Claude Cowork ran inside a full virtual machine using the platform's vendor hypervisor (Apple's Virtualization framework on macOS, HCS on Windows). The VM has its "
+  }
+]

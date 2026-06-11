@@ -1,0 +1,197 @@
+[
+  {
+    "i": 0,
+    "kind": "text",
+    "en": "Harnesses encode assumptions that go stale as models improve. Managed Agents—our hosted service for long-horizon agent work—is built around interfaces that stay stable as harnesses change."
+  },
+  {
+    "i": 1,
+    "kind": "text",
+    "en": "Get started with Claude Managed Agents by following our docs ."
+  },
+  {
+    "i": 2,
+    "kind": "text",
+    "en": "A running topic on the Engineering Blog is how to build effective agents and design harnesses for long-running work . A common thread across this work is that harnesses encode assumptions about what C"
+  },
+  {
+    "i": 3,
+    "kind": "text",
+    "en": "As just one example, in prior work we found that Claude Sonnet 4.5 would wrap up tasks prematurely as it sensed its context limit approaching—a behavior sometimes called &quot;context anxiety.&quot; W"
+  },
+  {
+    "i": 4,
+    "kind": "text",
+    "en": "We expect harnesses to continue evolving. So we built Managed Agents: a hosted service in the Claude Platform that runs long-horizon agents on your behalf through a small set of interfaces meant to ou"
+  },
+  {
+    "i": 5,
+    "kind": "text",
+    "en": "Building Managed Agents meant solving an old problem in computing: how to design a system for &quot; programs as yet unthought of .&quot; Decades ago, operating systems solved this problem by virtuali"
+  },
+  {
+    "i": 6,
+    "kind": "text",
+    "en": "Managed Agents follow the same pattern. We virtualized the components of an agent: a session (the append-only log of everything that happened), a harness (the loop that calls Claude and routes Claude'"
+  },
+  {
+    "i": 7,
+    "kind": "image",
+    "en": "Managed Agents architecture"
+  },
+  {
+    "i": 8,
+    "kind": "heading",
+    "en": "Don't adopt a pet"
+  },
+  {
+    "i": 9,
+    "kind": "text",
+    "en": "We started by placing all agent components into a single container, which meant the session, agent harness, and sandbox all shared an environment. There were benefits to this approach, including that "
+  },
+  {
+    "i": 10,
+    "kind": "text",
+    "en": "But by coupling everything into one container, we ran into an old infrastructure problem: we'd adopted a *pet* . In the pets-vs-cattle analogy, a pet is a named, hand-tended individual you can't affor"
+  },
+  {
+    "i": 11,
+    "kind": "text",
+    "en": "Nursing containers meant debugging unresponsive stuck sessions. Our only window in was the WebSocket event stream, but that couldn't tell us where failures arose, which meant that a bug in the harness"
+  },
+  {
+    "i": 12,
+    "kind": "text",
+    "en": "A second issue was that the harness assumed that whatever Claude worked on lived in the container with it. When customers asked us to connect Claude to their virtual private cloud, they had to either "
+  },
+  {
+    "i": 13,
+    "kind": "heading",
+    "en": "Decouple the brain from the hands"
+  },
+  {
+    "i": 14,
+    "kind": "text",
+    "en": "The solution we arrived at was to decouple what we thought of as the &quot;brain&quot; (Claude and its harness) from both the &quot;hands&quot; (sandboxes and tools that perform actions) and the &quot"
+  },
+  {
+    "i": 15,
+    "kind": "text",
+    "en": "The harness leaves the container. Decoupling the brain from the hands meant the harness no longer lived inside the container. It called the container the way it called any other tool: execute(name, in"
+  },
+  {
+    "i": 16,
+    "kind": "text",
+    "en": "Recovering from harness failure. The harness also became cattle. Because the session log sits outside the harness, nothing in the harness needs to survive a crash. When one fails, a new one can be reb"
+  },
+  {
+    "i": 17,
+    "kind": "image",
+    "en": "Decoupled architecture"
+  },
+  {
+    "i": 18,
+    "kind": "text",
+    "en": "The security boundary. In the coupled design, any untrusted code that Claude generated was run in the same container as credentials—so a prompt injection only had to convince Claude to read its own en"
+  },
+  {
+    "i": 19,
+    "kind": "text",
+    "en": "We used two patterns to ensure this. Auth can be bundled with a resource or held in a vault outside the sandbox. For Git, we use each repository's access token to clone the repo during sandbox initial"
+  },
+  {
+    "i": 20,
+    "kind": "heading",
+    "en": "The session is not Claude's context window"
+  },
+  {
+    "i": 21,
+    "kind": "text",
+    "en": "Long-horizon tasks often exceed the length of Claude's context window, and the standard ways to address this all involve irreversible decisions about what to keep. We've explored these techniques in p"
+  },
+  {
+    "i": 22,
+    "kind": "text",
+    "en": "But irreversible decisions to selectively retain or discard context can lead to failures. It is difficult to know which tokens the future turns will need. If messages are transformed by a compaction s"
+  },
+  {
+    "i": 23,
+    "kind": "image",
+    "en": "Session as context object"
+  },
+  {
+    "i": 24,
+    "kind": "text",
+    "en": "In Managed Agents, the session provides this same benefit, serving as a context object that lives outside Claude's context window. But rather than be stored within the sandbox or REPL, context is dura"
+  },
+  {
+    "i": 25,
+    "kind": "text",
+    "en": "Any fetched events can also be transformed in the harness before being passed to Claude's context window. These transformations can be whatever the harness encodes, including context organization to a"
+  },
+  {
+    "i": 26,
+    "kind": "heading",
+    "en": "Many brains, many hands"
+  },
+  {
+    "i": 27,
+    "kind": "text",
+    "en": "Many brains. Decoupling the brain from the hands solved one of our earliest customer complaints. When teams wanted Claude to work against resources in their own VPC, the only path was to peer their ne"
+  },
+  {
+    "i": 28,
+    "kind": "text",
+    "en": "That dead time is expressed in time-to-first-token (TTFT), which measures how long a session waits between accepting work and producing its first response token. TTFT is the latency the user most acut"
+  },
+  {
+    "i": 29,
+    "kind": "text",
+    "en": "Decoupling the brain from the hands means that containers are provisioned by the brain via a tool call (execute(name, input) -&gt; string) only if they are needed. So a session that didn't need a cont"
+  },
+  {
+    "i": 30,
+    "kind": "text",
+    "en": "Many hands. We also wanted the ability to connect each brain to many hands. In practice, this means Claude must reason about many execution environments and decide where to send work—a harder cognitiv"
+  },
+  {
+    "i": 31,
+    "kind": "text",
+    "en": "Decoupling the brain from the hands makes each hand a tool, execute(name, input) -&gt; string : a name and input go in, and a string is returned. That interface supports any custom tool, any MCP serve"
+  },
+  {
+    "i": 32,
+    "kind": "image",
+    "en": "Many brains, many hands"
+  },
+  {
+    "i": 33,
+    "kind": "heading",
+    "en": "Conclusion"
+  },
+  {
+    "i": 34,
+    "kind": "text",
+    "en": "The challenge we faced is an old one: how to design a system for &quot;programs as yet unthought of.&quot; Operating systems have lasted decades by virtualizing the hardware into abstractions general "
+  },
+  {
+    "i": 35,
+    "kind": "text",
+    "en": "Managed Agents is a meta-harness in the same spirit, unopinionated about the specific harness that Claude will need in the future. Rather, it is a system with general interfaces that allow many differ"
+  },
+  {
+    "i": 36,
+    "kind": "text",
+    "en": "Meta-harness design means being opinionated about the interfaces around Claude: we expect that Claude will need the ability to manipulate state (the session) and perform computation (the sandbox). We "
+  },
+  {
+    "i": 37,
+    "kind": "heading",
+    "en": "Acknowledgements"
+  },
+  {
+    "i": 38,
+    "kind": "text",
+    "en": "Written by Lance Martin, Gabe Cemaj, and Michael Cohen. Thanks to Nodir Turakulov and Jeremy Fox for helpful conversations on these topics. Special thanks to the Agents API team and Jake Eaton for the"
+  }
+]

@@ -1,0 +1,192 @@
+[
+  {
+    "i": 0,
+    "kind": "text",
+    "en": "Claude Code's new sandboxing features, a bash tool and Claude Code on the web, reduce permission prompts and increase user safety by enabling two boundaries: filesystem and network isolation."
+  },
+  {
+    "i": 1,
+    "kind": "text",
+    "en": "In Claude Code , Claude writes, tests, and debugs code alongside you, navigating your codebase, editing multiple files, and running commands to verify its work. Giving Claude this much access to your "
+  },
+  {
+    "i": 2,
+    "kind": "text",
+    "en": "To help address this, we've introduced two new features in Claude Code built on top of sandboxing, both of which are designed to provide a more secure place for developers to work, while also allowing"
+  },
+  {
+    "i": 3,
+    "kind": "heading",
+    "en": "Keeping users secure on Claude Code"
+  },
+  {
+    "i": 4,
+    "kind": "text",
+    "en": "Claude Code runs on a permission-based model: by default, it's read-only, which means it asks for permission before making modifications or running any commands. There are some exceptions to this: we "
+  },
+  {
+    "i": 5,
+    "kind": "text",
+    "en": "Constantly clicking &quot;approve&quot; slows down development cycles and can lead to 'approval fatigue', where users might not pay close attention to what they're approving, and in turn making develo"
+  },
+  {
+    "i": 6,
+    "kind": "text",
+    "en": "To address this, we launched sandboxing for Claude Code."
+  },
+  {
+    "i": 7,
+    "kind": "heading",
+    "en": "Sandboxing: a safer and more autonomous approach"
+  },
+  {
+    "i": 8,
+    "kind": "text",
+    "en": "Sandboxing creates pre-defined boundaries within which Claude can work more freely, instead of asking for permission for each action. With sandboxing enabled, you get drastically fewer permission prom"
+  },
+  {
+    "i": 9,
+    "kind": "text",
+    "en": "Our approach to sandboxing is built on top of operating system-level features to enable two boundaries:"
+  },
+  {
+    "i": 10,
+    "kind": "list",
+    "en": "Filesystem isolation , which ensures that Claude can only access or modify specific directories. This is particularly important in preventing a prompt-injected Claude from modifying sensitive system f"
+  },
+  {
+    "i": 11,
+    "kind": "list",
+    "en": "Network isolation , which ensures that Claude can only connect to approved servers. This prevents a prompt-injected Claude from leaking sensitive information or downloading malware."
+  },
+  {
+    "i": 12,
+    "kind": "text",
+    "en": "It is worth noting that effective sandboxing requires both filesystem and network isolation. Without network isolation, a compromised agent could exfiltrate sensitive files like SSH keys; without file"
+  },
+  {
+    "i": 13,
+    "kind": "heading",
+    "en": "Two new sandboxing features in Claude Code"
+  },
+  {
+    "i": 14,
+    "kind": "heading",
+    "en": "Sandboxed bash tool: safe bash execution without permission prompts"
+  },
+  {
+    "i": 15,
+    "kind": "text",
+    "en": "We're introducing a new sandbox runtime , available in beta as a research preview, that lets you define exactly which directories and network hosts your agent can access, without the overhead of spinn"
+  },
+  {
+    "i": 16,
+    "kind": "text",
+    "en": "In Claude Code, we use this runtime to sandbox the bash tool, which allows Claude to run commands within the defined limits you set. Inside the safe sandbox, Claude can run more autonomously and safel"
+  },
+  {
+    "i": 17,
+    "kind": "text",
+    "en": "We've built this on top of OS level primitives such as Linux bubblewrap and MacOS seatbelt to enforce these restrictions at the OS level. They cover not just Claude Code's direct interactions, but als"
+  },
+  {
+    "i": 18,
+    "kind": "list",
+    "en": "Filesystem isolation, by allowing read and write access to the current working directory, but blocking the modification of any files outside of it."
+  },
+  {
+    "i": 19,
+    "kind": "list",
+    "en": "Network isolation, by only allowing internet access through a unix domain socket connected to a proxy server running outside the sandbox. This proxy server enforces restrictions on the domains that a "
+  },
+  {
+    "i": 20,
+    "kind": "text",
+    "en": "Both components are configurable: you can easily choose to allow or disallow specific file paths or domains."
+  },
+  {
+    "i": 21,
+    "kind": "image",
+    "en": "Claude Code's sandboxing architecture isolates code execution with filesystem and network controls, automatically allowing safe operations, blocking malicious ones, and asking permission only when nee"
+  },
+  {
+    "i": 22,
+    "kind": "text",
+    "en": "Sandboxing ensures that even a successful prompt injection is fully isolated, and cannot impact overall user security. This way, a compromised Claude Code can't steal your SSH keys, or phone home to a"
+  },
+  {
+    "i": 23,
+    "kind": "text",
+    "en": "To get started with this feature, run /sandbox in Claude Code and check out more technical details about our security model."
+  },
+  {
+    "i": 24,
+    "kind": "text",
+    "en": "To make it easier for other teams to build safer agents, we have open sourced this feature. We believe that others should consider adopting this technology for their own agents in order to enhance the"
+  },
+  {
+    "i": 25,
+    "kind": "heading",
+    "en": "Claude Code on the web: running Claude Code securely in the cloud"
+  },
+  {
+    "i": 26,
+    "kind": "text",
+    "en": "Today, we're also releasing Claude Code on the web enabling users to run Claude Code in an isolated sandbox in the cloud. Claude Code on the web executes each Claude Code session in an isolated sandbo"
+  },
+  {
+    "i": 27,
+    "kind": "text",
+    "en": "Claude Code on the web uses a custom proxy service that transparently handles all git interactions. Inside the sandbox, the git client authenticates to this service with a custom-built scoped credenti"
+  },
+  {
+    "i": 28,
+    "kind": "image",
+    "en": "Claude Code's Git integration routes commands through a secure proxy that validates authentication tokens, branch names, and repository destinations—allowing safe version control workflows while preve"
+  },
+  {
+    "i": 29,
+    "kind": "heading",
+    "en": "Getting started"
+  },
+  {
+    "i": 30,
+    "kind": "text",
+    "en": "Our new sandboxed bash tool and Claude Code on the web offer substantial improvements in both security and productivity for developers using Claude for their engineering work."
+  },
+  {
+    "i": 31,
+    "kind": "text",
+    "en": "To get started with these tools:"
+  },
+  {
+    "i": 32,
+    "kind": "list",
+    "en": "Run /sandbox in Claude and check out our docs on how to configure this sandbox."
+  },
+  {
+    "i": 33,
+    "kind": "list",
+    "en": "Go to claude.com/code to try out Claude Code on the web."
+  },
+  {
+    "i": 34,
+    "kind": "text",
+    "en": "Or, if you're building your own agents, check out our open-sourced sandboxing code , and consider integrating it into your work. We look forward to seeing what you build."
+  },
+  {
+    "i": 35,
+    "kind": "text",
+    "en": "To learn more about Claude Code on the web, check out our launch blog post ."
+  },
+  {
+    "i": 36,
+    "kind": "heading",
+    "en": "Acknowledgements"
+  },
+  {
+    "i": 37,
+    "kind": "text",
+    "en": "Article written by David Dworken and Oliver Weller-Davies, with contributions from Meaghan Choi, Catherine Wu, Molly Vorwerck, Alex Isken, Kier Bradwell, and Kevin Garcia"
+  }
+]
