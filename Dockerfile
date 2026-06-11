@@ -1,5 +1,4 @@
-FROM node:20-alpine AS builder
-RUN apk add --no-cache python3 make g++
+FROM node:20 AS builder
 WORKDIR /app
 
 COPY package*.json ./
@@ -11,7 +10,7 @@ RUN npm run build
 # 删掉 devDependencies，减小镜像体积
 RUN npm prune --omit=dev
 
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
