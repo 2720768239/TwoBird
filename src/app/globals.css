@@ -116,6 +116,15 @@
         .para-list{margin:4px 0 4px 18px;font-size:15px;line-height:1.8}
         .para-list li{margin-bottom:3px}
         .para-list li::marker{color:var(--p)}
+        /* Structure overview */
+        .structure-summary{background:var(--l);border:1px solid var(--b);border-left:3px solid var(--p);border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:15px;line-height:1.7;color:var(--d)}
+        .structure-guide-list{display:flex;flex-direction:column;gap:10px}
+        .structure-row{background:#fff;border:1px solid var(--b);border-radius:8px;padding:12px 14px}
+        .structure-row-sub{margin-left:18px;background:var(--l)}
+        .structure-row-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--d)}
+        .structure-row-head strong{font-size:15px}
+        .structure-step{flex-shrink:0;font-size:12px;line-height:1;padding:4px 6px;border-radius:4px;background:rgba(108,92,231,.1);color:var(--p);font-weight:700}
+        .structure-row p{font-size:14px;line-height:1.7;color:var(--g)}
         /* Concept cards */
         .concept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
         .concept-card{background:var(--l);border-radius:8px;padding:14px;transition:all .3s}
@@ -138,10 +147,10 @@
         .sentence-translation{font-size:14px;color:var(--d);padding:6px;background:#fff;border-radius:5px;margin-bottom:4px}
         .sentence-grammar{font-size:13px;color:var(--g);padding:5px 6px;background:rgba(108,92,231,.08);border-radius:4px}
         /* Quote cards */
-        .quote-card{background:linear-gradient(135deg,var(--p) 0%,#764ba2 100%);border-radius:8px;padding:14px;margin-bottom:10px;color:#fff}
-        .quote-en{font-size:15px;font-style:italic;line-height:1.6;margin-bottom:6px}
-        .quote-cn{font-size:14px;opacity:.9;margin-bottom:6px}
-        .quote-why{font-size:13px;opacity:.8;padding-top:6px;border-top:1px solid rgba(255,255,255,.3)}
+        .quote-card{background:var(--l);border:1px solid var(--b);border-left:3px solid var(--p);border-radius:8px;padding:14px;margin-bottom:10px;color:var(--d)}
+        .quote-en{font-size:15px;font-style:italic;line-height:1.6;margin-bottom:6px;color:var(--d)}
+        .quote-cn{font-size:14px;color:var(--g);margin-bottom:6px}
+        .quote-why{font-size:13px;color:var(--g);padding-top:6px;border-top:1px solid var(--b)}
         /* Checklist */
         .checklist{list-style:none}
         .checklist li{display:flex;align-items:center;padding:8px 10px;margin-bottom:4px;background:var(--l);border-radius:6px;cursor:pointer;transition:all .2s}
