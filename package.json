@@ -9,7 +9,9 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test tests/auth.test.js tests/user-state.test.js tests/next-structure.test.js",
-    "lint": "node scripts/check-js-syntax.js"
+    "lint": "node scripts/check-js-syntax.js",
+    "generate:aids": "node scripts/generate-course-aids.js",
+    "scaffold:translations": "node scripts/scaffold-paragraph-translations.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

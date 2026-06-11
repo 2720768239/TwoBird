@@ -4,9 +4,7 @@ const tabs = [
   ['structure', '📋 结构'],
   ['reading', '📖 阅读'],
   ['vocabulary', '📚 词汇'],
-  ['sentences', '📝 长难句'],
   ['concepts', '💡 概念'],
-  ['quotes', '✨ 金句'],
   ['tasks', '✅ 任务'],
 ];
 

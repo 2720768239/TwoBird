@@ -4,6 +4,7 @@ const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const articlesPath = path.join(root, 'src', 'data', 'articles.js');
+const translationsDir = path.join(root, 'src', 'data', 'translations');
 
 const docMap = new Map([
   [0, 'building-effective-agents.md'],
@@ -261,7 +262,7 @@ const tagClasses = ['tag-pr', 'tag-wf', 'tag-ag'];
 function readArticles() {
   const source = fs
     .readFileSync(articlesPath, 'utf8')
-    .replace(/import \{ buildingEffectiveAgentsZh \} from '\.\/building-effective-agents\.zh';\n\n/, '')
+    .replace(/^import \{ buildingEffectiveAgentsZh \} from '\.\/building-effective-agents\.zh';\n\n/, '')
     .replace(/\nfor \(const \[index[\s\S]*$/, '');
   const context = {};
   vm.runInNewContext(source.replace(/^export const articles = /m, 'articles = '), context);
@@ -269,15 +270,259 @@ function readArticles() {
 }
 
 function writeArticles(articles) {
-  fs.writeFileSync(
-    articlesPath,
-    `import { buildingEffectiveAgentsZh } from './building-effective-agents.zh';\n\nexport const articles = ${JSON.stringify(
-      articles,
-      null,
-      2,
-    )};\n\nfor (const [index, translation] of buildingEffectiveAgentsZh.entries()) {\n  if (articles[0].paragraphs[index]) {\n    articles[0].paragraphs[index].cn = translation;\n  }\n}\n`,
-    'utf8',
-  );
+  fs.writeFileSync(articlesPath, `export const articles = ${JSON.stringify(articles, null, 2)};\n`, 'utf8');
+}
+
+function inlineMarkdownToHtml(text) {
+  const codeSpans = [];
+  let working = text.replace(/`([^`]+)`/g, (_, code) => {
+    codeSpans.push(escapeHtml(code));
+    return `\x00CODE${codeSpans.length - 1}\x00`;
+  });
+
+  const links = [];
+  working = working.replace(/\[([^\]]+)]\(([^)]+)\)/g, (_, label, url) => {
+    links.push({ label: escapeHtml(label), url: escapeHtml(url) });
+    return `\x00LINK${links.length - 1}\x00`;
+  });
+
+  working = escapeHtml(working);
+  working = working.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  working = working.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  working = working.replace(/\x00LINK(\d+)\x00/g, (_, index) => {
+    const link = links[Number(index)];
+    return `<a href="${link.url}" rel="noreferrer" target="_blank">${link.label}</a>`;
+  });
+  working = working.replace(/\x00CODE(\d+)\x00/g, (_, index) => `<code>${codeSpans[Number(index)]}</code>`);
+  return working;
+}
+
+function markdownBlockToHtml(block) {
+  switch (block.kind) {
+    case 'heading': {
+      const tag = `h${Math.min(Math.max(block.level, 2), 4)}`;
+      return `<${tag}>${inlineMarkdownToHtml(block.text)}</${tag}>`;
+    }
+    case 'list': {
+      const tag = block.ordered ? 'ol' : 'ul';
+      const items = block.items
+        .map((item) => `<li>${inlineMarkdownToHtml(item.replace(/\n• /g, '<br>• '))}</li>`)
+        .join('');
+      return `<${tag}>${items}</${tag}>`;
+    }
+    case 'image': {
+      const alt = escapeHtml(block.alt || '');
+      const url = escapeHtml(block.url);
+      const caption = block.alt ? `<figcaption>${alt}</figcaption>` : '';
+      return `<figure class="para-figure"><img alt="${alt}" src="${url}" loading="lazy" />${caption}</figure>`;
+    }
+    case 'code':
+      return `<pre><code>${escapeHtml(block.text)}</code></pre>`;
+    default:
+      return `<p>${inlineMarkdownToHtml(block.text)}</p>`;
+  }
+}
+
+function plainTextKey(html) {
+  return String(html)
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function parseMarkdownBlocks(markdown) {
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let skippedTitle = false;
+  let textBuffer = [];
+  let listBuffer = null;
+  let codeBuffer = null;
+
+  const flushText = () => {
+    const text = textBuffer.join(' ').replace(/\s+/g, ' ').trim();
+    textBuffer = [];
+    if (text) blocks.push({ kind: 'text', text });
+  };
+
+  const flushList = () => {
+    if (!listBuffer?.items.length) {
+      listBuffer = null;
+      return;
+    }
+    blocks.push({ kind: 'list', ordered: listBuffer.ordered, items: [...listBuffer.items] });
+    listBuffer = null;
+  };
+
+  const flushAll = () => {
+    flushText();
+    flushList();
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\s+$/g, '');
+
+    if (codeBuffer !== null) {
+      if (line.trim().startsWith('```')) {
+        blocks.push({ kind: 'code', text: codeBuffer.join('\n') });
+        codeBuffer = null;
+      } else {
+        codeBuffer.push(rawLine);
+      }
+      continue;
+    }
+
+    if (line.trim().startsWith('```')) {
+      flushAll();
+      codeBuffer = [];
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      flushAll();
+      const level = heading[1].length;
+      const text = heading[2].trim();
+      if (level === 1 && !skippedTitle) {
+        skippedTitle = true;
+        continue;
+      }
+      blocks.push({ kind: 'heading', level, text });
+      continue;
+    }
+
+    const image = line.match(/^!\[([^\]]*)]\(([^)]+)\)\s*$/);
+    if (image) {
+      flushAll();
+      blocks.push({ kind: 'image', alt: image[1].trim(), url: image[2].trim() });
+      continue;
+    }
+
+    const orderedItem = line.match(/^\d+\.\s+(.+)$/);
+    if (orderedItem) {
+      flushText();
+      if (!listBuffer || !listBuffer.ordered) {
+        flushList();
+        listBuffer = { ordered: true, items: [] };
+      }
+      listBuffer.items.push(orderedItem[1].trim());
+      continue;
+    }
+
+    const unorderedItem = line.match(/^(?:[-*]|\s{2,}[-*])\s+(.+)$/);
+    if (unorderedItem) {
+      flushText();
+      if (!listBuffer || listBuffer.ordered) {
+        flushList();
+        listBuffer = { ordered: false, items: [] };
+      }
+      listBuffer.items.push(unorderedItem[1].trim());
+      continue;
+    }
+
+    if (!line.trim()) {
+      flushAll();
+      continue;
+    }
+
+    if (/^Published\b/i.test(line.trim())) {
+      continue;
+    }
+
+    flushList();
+    textBuffer.push(line.trim());
+  }
+
+  if (codeBuffer !== null) {
+    blocks.push({ kind: 'code', text: codeBuffer.join('\n') });
+  }
+  flushAll();
+  return blocks;
+}
+
+function translationSlugFromDoc(fileName) {
+  return fileName.replace(/\.md$/i, '');
+}
+
+function normalizeParagraphTranslations(raw) {
+  if (Array.isArray(raw)) {
+    const normalized = {};
+    for (const [index, value] of raw.entries()) {
+      if (typeof value === 'string' && value.trim()) {
+        normalized[index] = value;
+      }
+    }
+    return normalized;
+  }
+  if (raw && typeof raw === 'object') {
+    return raw;
+  }
+  return {};
+}
+
+function loadParagraphTranslations(fileName) {
+  const slug = translationSlugFromDoc(fileName);
+  const jsPath = path.join(translationsDir, `${slug}.zh.js`);
+  const jsonPath = path.join(translationsDir, `${slug}.zh.json`);
+
+  if (fs.existsSync(jsPath)) {
+    const context = {};
+    const source = fs
+      .readFileSync(jsPath, 'utf8')
+      .replace(/^export const paragraphsZh\s*=\s*/m, 'paragraphsZh = ');
+    vm.runInNewContext(source, context);
+    return normalizeParagraphTranslations(context.paragraphsZh);
+  }
+
+  if (fs.existsSync(jsonPath)) {
+    return normalizeParagraphTranslations(JSON.parse(fs.readFileSync(jsonPath, 'utf8')));
+  }
+
+  return {};
+}
+
+function applyParagraphTranslations(paragraphs, translations) {
+  return paragraphs.map((paragraph, index) => {
+    if (paragraph.kind === 'image') {
+      return { ...paragraph, cn: '' };
+    }
+    const fromFile = translations[index];
+    if (typeof fromFile === 'string' && fromFile.trim()) {
+      return { ...paragraph, cn: fromFile };
+    }
+    return paragraph;
+  });
+}
+
+function extractParagraphsFromMarkdown(markdown, previousParagraphs = [], translationFile = {}) {
+  const cnByPlainEn = new Map();
+  for (const paragraph of previousParagraphs) {
+    if (paragraph.kind === 'image') continue;
+    const key = plainTextKey(paragraph.en);
+    if (paragraph.cn?.trim() && key) {
+      cnByPlainEn.set(key, paragraph.cn);
+    }
+  }
+
+  const paragraphs = parseMarkdownBlocks(markdown).map((block) => {
+    const en = markdownBlockToHtml(block);
+    const paragraph = {
+      en,
+      kind: block.kind,
+      cn: '',
+    };
+    if (block.kind !== 'image') {
+      paragraph.cn = cnByPlainEn.get(plainTextKey(en)) || '';
+    }
+    return paragraph;
+  });
+
+  return applyParagraphTranslations(paragraphs, translationFile);
 }
 
 function stripMarkdown(markdown) {
@@ -520,53 +765,6 @@ function sentenceScore(sentence) {
   return sentence.length + commas * 20 + semicolons * 25 + termHits * 35;
 }
 
-function generateSentenceTranslation(sentence, vocab) {
-  const terms = vocab.filter((word) => termRegex(word.en).test(sentence)).slice(0, 4);
-  if (!terms.length) {
-    return '参考译法：这句话信息密度较高，先抓主语和核心谓语，再把补充说明拆成条件、目的或结果。';
-  }
-  return `参考译法：这句话围绕 ${terms.map((word) => `${word.en}（${word.cn}）`).join('、')} 展开，重点是在说明它们如何影响系统设计或工程落地。`;
-}
-
-function generateGrammar(sentence) {
-  if (sentence.includes(' where ')) return '语法提示：where 引导补充说明，通常解释前面系统、场景或阶段的具体条件。';
-  if (sentence.includes(' when ')) return '语法提示：when 引导时间或条件状语，先判断它限制的是动作发生时机还是适用边界。';
-  if (sentence.includes(' while ')) return '语法提示：while 常用于对比或让步，注意前后两个分句的立场差异。';
-  if (sentence.includes(' that ')) return '语法提示：that 可能引导定语从句或宾语从句，先判断它修饰的对象。';
-  return '语法提示：先找主句，再把插入语、从句和介词短语逐层拆开。';
-}
-
-function generateSentences(markdown, vocab) {
-  const text = stripMarkdown(markdown);
-  const sentences = sentenceSplit(text)
-    .filter((sentence) => sentence.length > 105 && sentence.length < 340)
-    .sort((a, b) => sentenceScore(b) - sentenceScore(a))
-    .slice(0, 4);
-
-  const cards = sentences
-    .map((sentence) => {
-      const tags = vocab
-        .filter((word) => termRegex(word.en).test(sentence))
-        .slice(0, 4)
-        .map(
-          (word) =>
-            `<span class="word-tag"><span class="w-en">${escapeHtml(word.en)}</span> <span class="w-cn">${escapeHtml(
-              word.cn,
-            )}</span></span>`,
-        )
-        .join('');
-      return `<div class="sentence-card"><div class="sentence-original">"${escapeHtml(
-        sentence,
-      )}"</div><div class="sentence-words">${tags}</div><div class="sentence-translation"><strong>翻译：</strong>${generateSentenceTranslation(
-        sentence,
-        vocab,
-      )}</div><div class="sentence-grammar"><strong>${generateGrammar(sentence)}</strong></div></div>`;
-    })
-    .join('');
-
-  return `<h3 style="color:var(--p);margin-bottom:14px">长难句拆解</h3>${cards}`;
-}
-
 function conceptLabel(index) {
   if (index < 2) return '基础';
   if (index < 4) return '模式';
@@ -594,28 +792,7 @@ function generateConcepts(markdown, vocab) {
     })
     .join('');
 
-  return `<h3 style="color:var(--p);margin-bottom:14px">核心概念卡片</h3><div class="concept-grid">${cards}</div>`;
-}
-
-function generateQuotes(markdown) {
-  const text = stripMarkdown(markdown);
-  const quotes = sentenceSplit(text)
-    .filter((sentence) => sentence.length > 80 && sentence.length < 240)
-    .filter((sentence) => /(should|must|need|important|key|core|recommend|best|effective|reliable|success|security|build|design|use)/i.test(sentence))
-    .sort((a, b) => sentenceScore(b) - sentenceScore(a))
-    .slice(0, 4);
-
-  const cards = quotes
-    .map((quote) => {
-      const focus = sectionHint(quote);
-      return `<div class="quote-card"><div class="quote-en">"${escapeHtml(
-        quote,
-      )}"</div><div class="quote-cn">要点：这句话适合用来复述文章主张，核心在于 ${escapeHtml(
-        focus,
-      )}。</div><div class="quote-why">复盘：把其中的条件、取舍和工程原则改写成自己的项目检查项。</div></div>`;
-    })
-    .join('');
-  return `<h3 style="color:var(--p);margin-bottom:14px">金句摘录</h3>${cards}`;
+  return `<h3 style="color:var(--p);margin-bottom:14px">核心概念卡片</h3><div class="concept-grid concept-stack">${cards}</div>`;
 }
 
 function checklistItem(text) {
@@ -631,9 +808,7 @@ function generateTasks(article, vocab) {
 <h4 style="margin:12px 0 6px;font-size:16px">速读：10 分钟</h4>
 <ul class="checklist">${checklistItem(`读完《${article.title}》，用一句话写出作者真正想解决的问题`)}</ul>
 <h4 style="margin:12px 0 6px;font-size:16px">精读：25 分钟</h4>
-<ul class="checklist">${checklistItem(`解释 ${terms} 在本文中的含义，不要只背中文翻译`)}${checklistItem(
-    '选 3 个长难句，拆出主句、从句和关键修饰语',
-  )}${checklistItem('整理 3 条能迁移到自己项目的工程原则，并写出适用条件')}</ul>
+<ul class="checklist">${checklistItem(`解释 ${terms} 在本文中的含义，不要只背中文翻译`)}${checklistItem('整理 3 条能迁移到自己项目的工程原则，并写出适用条件')}</ul>
 <h4 style="margin:12px 0 6px;font-size:16px">输出：15 分钟</h4>
 <ul class="checklist">${checklistItem('用英文写 3-5 句话总结本文观点')}${checklistItem(
     '结合自己的业务场景，设计一个可验证的小实验或检查清单',
@@ -689,19 +864,6 @@ function engineeringNoteForText(title, body = '') {
     return '智能体的价值来自可观察的环境反馈和清晰停止条件，不是把所有步骤都交给模型自由发挥。';
   }
   return '把这一节当成一个设计判断来读：它适合什么场景，牺牲了什么，又提升了什么。';
-}
-
-function quoteReadingNote(quote) {
-  if (quote.includes(':')) {
-    return '英文表达：冒号后面通常是在展开定义、分类或例子，翻译时先把冒号前的主干译清楚。';
-  }
-  if (quote.includes(' when ')) {
-    return '英文表达：when 引导条件或适用场景，中文里可以先译成“当……时”或“在……情况下”。';
-  }
-  if (quote.includes(' where ')) {
-    return '英文表达：where 常常不是地点，而是在限定一种系统、任务或条件。';
-  }
-  return '英文表达：先找主语和谓语，再处理插入语、并列结构和修饰语。';
 }
 
 function readingStepLabel(title, body = '') {
@@ -1051,29 +1213,7 @@ function generateConcepts(markdown, vocab) {
     })
     .join('');
 
-  return `<h3 style="color:var(--p);margin-bottom:14px">核心概念卡片</h3><div class="concept-grid">${cards}</div>`;
-}
-
-function generateQuotes(markdown) {
-  const text = stripMarkdown(markdown);
-  const quotes = sentenceSplit(text)
-    .filter((sentence) => sentence.length > 80 && sentence.length < 240)
-    .filter((sentence) => /(should|must|need|important|key|core|recommend|best|effective|reliable|success|security|build|design|use)/i.test(sentence))
-    .sort((a, b) => sentenceScore(b) - sentenceScore(a))
-    .slice(0, 4);
-
-  const cards = quotes
-    .map((quote) => `<div class="quote-card"><div class="quote-en">"${escapeHtml(
-      quote,
-    )}"</div><div class="quote-cn"><strong>中文理解：</strong>${escapeHtml(
-      sectionHint(quote),
-    )}。这句话要读出作者的判断条件，而不是只摘一句漂亮英文。</div><div class="quote-cn"><strong>${escapeHtml(
-      quoteReadingNote(quote),
-    )}</strong></div><div class="quote-why"><strong>工程启发：</strong>${escapeHtml(
-      engineeringNoteForText(quote),
-    )}</div></div>`)
-    .join('');
-  return `<h3 style="color:var(--p);margin-bottom:14px">金句摘录</h3>${cards}`;
+  return `<h3 style="color:var(--p);margin-bottom:14px">核心概念卡片</h3><div class="concept-grid concept-stack">${cards}</div>`;
 }
 
 function applyGeneratedAids() {
@@ -1087,10 +1227,15 @@ function applyGeneratedAids() {
 
     article.vocab = vocab;
     article.structure = generateStructure(markdown);
-    article.sentences = generateSentences(markdown, vocab);
+    delete article.sentences;
     article.concepts = generateConcepts(markdown, vocab);
-    article.quotes = generateQuotes(markdown);
+    delete article.quotes;
     article.tasks = generateTasks(article, vocab);
+    article.paragraphs = extractParagraphsFromMarkdown(
+      markdown,
+      article.paragraphs,
+      loadParagraphTranslations(fileName),
+    );
   }
   writeArticles(articles);
   return articles;

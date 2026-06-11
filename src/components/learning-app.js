@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { articles } from '@/data/articles';
 import { apiFetch } from '@/lib/api-client';
+import { translatableParagraphIndexes } from '@/lib/paragraph-utils';
 import { ArticleTabs } from './article-tabs';
 import { AuthModal } from './auth-modal';
 import { HomePanel } from './home-panel';
@@ -48,8 +49,12 @@ export function LearningApp() {
   const article = currentArticleId === null ? null : articles[currentArticleId];
   const articleId = currentArticleId === null ? null : String(currentArticleId);
   const favorite = Boolean(articleId && dashboardState.favorites.includes(articleId));
-  const totalParagraphs = article?.paragraphs?.length || 0;
-  const allTranslationsVisible = totalParagraphs > 0 && translatedParagraphs.size === totalParagraphs;
+  const translatableIndexes = useMemo(
+    () => translatableParagraphIndexes(article?.paragraphs || []),
+    [article?.paragraphs],
+  );
+  const allTranslationsVisible =
+    translatableIndexes.length > 0 && translatableIndexes.every((index) => translatedParagraphs.has(index));
 
   const title = article ? `📖 ${article.title}` : '📖 Claude + 英语双修课程';
 
@@ -104,8 +109,9 @@ export function LearningApp() {
       const progress = snapshot.progress[key];
       const noteState = snapshot.notes[key];
       const paragraphCount = selected?.paragraphs?.length || 0;
+      const translatable = translatableParagraphIndexes(selected?.paragraphs || []);
 
-      setTranslatedParagraphs(progress?.translationShown ? new Set([...Array(paragraphCount).keys()]) : new Set());
+      setTranslatedParagraphs(progress?.translationShown ? new Set(translatable) : new Set());
       setHighlightedParagraphs(progress?.highlighted ? new Set([...Array(paragraphCount).keys()]) : new Set());
 
       if (noteState) {
@@ -179,7 +185,7 @@ export function LearningApp() {
 
   function toggleAllTranslations() {
     if (!article) return;
-    const next = allTranslationsVisible ? new Set() : new Set(article.paragraphs.map((_paragraph, index) => index));
+    const next = allTranslationsVisible ? new Set() : new Set(translatableIndexes);
     setTranslatedParagraphs(next);
     persistProgress(next).catch(console.error);
   }
@@ -290,9 +296,7 @@ export function LearningApp() {
     }
     if (activeTab === 'vocabulary') return <VocabularyPanel article={article} />;
     if (activeTab === 'structure') return <HtmlPanel html={article.structure} icon="📋" title="准备中" />;
-    if (activeTab === 'sentences') return <HtmlPanel html={article.sentences} icon="📝" title="准备中" />;
     if (activeTab === 'concepts') return <HtmlPanel html={article.concepts} icon="💡" title="准备中" />;
-    if (activeTab === 'quotes') return <HtmlPanel html={article.quotes} icon="✨" title="准备中" />;
     if (activeTab === 'tasks') return <HtmlPanel html={article.tasks} icon="✅" title="准备中" />;
     return null;
   }, [activeTab, article, highlightedParagraphs, noteOpenParagraphs, notes, translatedParagraphs]);

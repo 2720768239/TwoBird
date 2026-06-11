@@ -1,5 +1,7 @@
 'use client';
 
+import { isTranslatableParagraph } from '@/lib/paragraph-utils';
+
 export function ReadingPanel({
   article,
   translatedParagraphs,
@@ -49,14 +51,22 @@ export function ReadingPanel({
         const translated = translatedParagraphs.has(index);
         const highlighted = highlightedParagraphs.has(index);
         const noteOpen = noteOpenParagraphs.has(index);
+        const isHeading = /^<h[2-4][^>]*>/.test(paragraph.en);
+        const isFigure = paragraph.kind === 'image' || paragraph.en.startsWith('<figure');
+        const translatable = isTranslatableParagraph(paragraph);
+        const blockClass = isHeading ? 'paragraph-heading' : isFigure ? 'paragraph-figure' : '';
         return (
-          <div className={`paragraph ${highlighted ? 'highlight' : ''}`} data-id={index} key={index}>
+          <div className={`paragraph ${blockClass} ${highlighted ? 'highlight' : ''}`} data-id={index} key={index}>
             <div className="para-en" dangerouslySetInnerHTML={{ __html: paragraph.en }} />
-            <div className={`para-cn ${translated ? 'show' : ''}`} dangerouslySetInnerHTML={{ __html: paragraph.cn }} />
+            {translatable ? (
+              <div className={`para-cn ${translated ? 'show' : ''}`} dangerouslySetInnerHTML={{ __html: paragraph.cn }} />
+            ) : null}
             <div className="para-controls">
-              <button className={`para-btn btn-tr ${translated ? 'active' : ''}`} type="button" onClick={() => onToggleTranslation(index)}>
-                译
-              </button>
+              {translatable ? (
+                <button className={`para-btn btn-tr ${translated ? 'active' : ''}`} type="button" onClick={() => onToggleTranslation(index)}>
+                  译
+                </button>
+              ) : null}
               <button className="para-btn btn-hl" type="button" onClick={() => onToggleHighlight(index)}>
                 亮
               </button>

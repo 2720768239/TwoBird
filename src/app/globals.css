@@ -97,6 +97,16 @@
         .para-en a{color:var(--p);text-decoration:none;font-weight:500}
         .para-en a:hover{text-decoration:underline}
         .para-en img{display:block;margin:8px 0;max-height:520px;object-fit:contain}
+        .para-en h2{font-size:20px;color:var(--p);margin:20px 0 8px;padding-top:12px;border-top:2px solid var(--b)}
+        .para-en h2:first-child{margin-top:0;padding-top:0;border-top:none}
+        .para-en h3{font-size:17px;color:var(--p);margin:16px 0 6px}
+        .para-en h4{font-size:16px;color:var(--d);margin:12px 0 4px;font-weight:600}
+        .para-en ul,.para-en ol{margin:6px 0 6px 20px;padding:0}
+        .para-en li{margin-bottom:4px}
+        .para-figure{margin:12px 0;text-align:center}
+        .para-figure figcaption{font-size:13px;color:var(--g);margin-top:6px}
+        .paragraph-heading{padding-top:4px;padding-bottom:2px}
+        .paragraph-figure{padding-top:6px;padding-bottom:6px}
         .para-cn{font-size:15px;line-height:1.8;color:var(--g);margin-top:8px;padding-top:8px;border-top:1px dashed var(--b);display:none}
         .para-cn.show{display:block;animation:fadeIn .3s}
         .para-controls{position:absolute;top:10px;right:10px;display:flex;gap:3px;opacity:0;transition:opacity .2s}
@@ -127,6 +137,7 @@
         .structure-row p{font-size:14px;line-height:1.7;color:var(--g)}
         /* Concept cards */
         .concept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+        .concept-grid.concept-stack{grid-template-columns:1fr}
         .concept-card{background:var(--l);border-radius:8px;padding:14px;transition:all .3s}
         .concept-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
         .concept-card h4{font-size:15px;color:var(--p);margin-bottom:6px}
@@ -138,19 +149,7 @@
         .tag-ag{background:var(--a);color:#fff}
         .tag-pr{background:var(--s);color:#fff}
         /* Sentence cards */
-        .sentence-card{background:var(--l);border-radius:8px;padding:14px;margin-bottom:10px;border-left:3px solid var(--p)}
-        .sentence-original{font-size:15px;line-height:1.7;color:var(--d);margin-bottom:8px;font-style:italic}
-        .sentence-words{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
-        .word-tag{background:#fff;padding:2px 7px;border-radius:4px;font-size:13px;border:1px solid var(--b)}
-        .word-tag .w-en{color:var(--p);font-weight:500}
-        .word-tag .w-cn{color:var(--g);margin-left:2px}
-        .sentence-translation{font-size:14px;color:var(--d);padding:6px;background:#fff;border-radius:5px;margin-bottom:4px}
-        .sentence-grammar{font-size:13px;color:var(--g);padding:5px 6px;background:rgba(108,92,231,.08);border-radius:4px}
         /* Quote cards */
-        .quote-card{background:var(--l);border:1px solid var(--b);border-left:3px solid var(--p);border-radius:8px;padding:14px;margin-bottom:10px;color:var(--d)}
-        .quote-en{font-size:15px;font-style:italic;line-height:1.6;margin-bottom:6px;color:var(--d)}
-        .quote-cn{font-size:14px;color:var(--g);margin-bottom:6px}
-        .quote-why{font-size:13px;color:var(--g);padding-top:6px;border-top:1px solid var(--b)}
         /* Checklist */
         .checklist{list-style:none}
         .checklist li{display:flex;align-items:center;padding:8px 10px;margin-bottom:4px;background:var(--l);border-radius:6px;cursor:pointer;transition:all .2s}

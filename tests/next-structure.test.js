@@ -11,12 +11,8 @@ function readProjectFile(filePath) {
 }
 
 function loadArticlesForTest() {
-  const translationSource = readProjectFile('src/data/building-effective-agents.zh.js');
   const articleSource = readProjectFile('src/data/articles.js');
-  const translationsLiteral = translationSource.match(/export const buildingEffectiveAgentsZh = (\[[\s\S]*?\]);/)[1];
-  const source = articleSource
-    .replace(/import \{ buildingEffectiveAgentsZh \} from '\.\/building-effective-agents\.zh';\n\n/, `const buildingEffectiveAgentsZh = ${translationsLiteral};\n\n`)
-    .replace(/^export const articles = /m, 'articles = ');
+  const source = articleSource.replace(/^export const articles = /m, 'articles = ');
   const context = {};
   vm.runInNewContext(source, context);
   return context.articles;
@@ -50,18 +46,46 @@ test('article data is extracted into a parseable module', () => {
 
   assert.equal(articles.length, 13);
   assert.equal(articles[0].title, 'Building effective agents');
-  assert.equal(articles[0].paragraphs.length, 17);
-  assert.equal(articles[11].paragraphs.length, 6);
+  assert.ok(articles[0].paragraphs.length > 40, 'reading view should include the full markdown article');
+  assert.ok(articles[11].paragraphs.length > 10, 'advanced tool use should include full markdown paragraphs');
   assert.equal(articles.at(-1).title, 'Writing effective tools for agents - with agents');
 });
 
-test('first article has full Chinese translations applied', () => {
-  const translations = readProjectFile('src/data/building-effective-agents.zh.js');
+test('reading paragraphs are generated from full markdown content', () => {
+  const articles = loadArticlesForTest();
+  const first = articles[0];
 
-  assert.match(translations, /最成功的智能体系统/);
-  assert.match(translations, /什么时候该用智能体/);
-  assert.match(translations, /编排者-工作者/);
-  assert.match(translations, /附录 1：实践中的智能体/);
+  assert.match(first.paragraphs[0].en, /We've worked with dozens of teams building LLM agents/);
+  assert.match(first.paragraphs.map((paragraph) => paragraph.en).join('\n'), /<h2>What are agents\?<\/h2>/);
+  assert.match(first.paragraphs.map((paragraph) => paragraph.en).join('\n'), /para-figure/);
+  for (const paragraph of first.paragraphs) {
+    assert.equal(typeof paragraph.en, 'string');
+    assert.equal(typeof paragraph.cn, 'string');
+  }
+});
+
+test('paragraph translation files are merged into article data', () => {
+  const articles = loadArticlesForTest();
+  const first = articles[0];
+
+  assert.match(first.paragraphs[0].cn, /我们与数十个团队/);
+  assert.match(first.paragraphs[3].cn, /什么是智能体/);
+  assert.match(first.paragraphs[81].cn, /总结/);
+  assert.equal(
+    fs.existsSync(path.join(root, 'src/data/translations/building-effective-agents.zh.json')),
+    true,
+  );
+});
+
+test('image paragraphs are not translated', () => {
+  const articles = loadArticlesForTest();
+  const imageParagraphs = articles[0].paragraphs.filter((paragraph) => paragraph.kind === 'image');
+
+  assert.ok(imageParagraphs.length > 0);
+  for (const paragraph of imageParagraphs) {
+    assert.equal(paragraph.cn, '');
+    assert.match(paragraph.en, /para-figure/);
+  }
 });
 
 test('all articles have generated learning aids without garbled placeholders', () => {
@@ -80,7 +104,7 @@ test('all articles have generated learning aids without garbled placeholders', (
       assert.equal(seenVocab.has(key), false, `${word.en} should not repeat across articles`);
       seenVocab.set(key, article.title);
     }
-    for (const field of ['structure', 'sentences', 'concepts', 'quotes', 'tasks']) {
+    for (const field of ['structure', 'concepts', 'tasks']) {
       assert.ok(article[field].length > 80, `${article.title} should have ${field}`);
       assert.equal(/\?{2,}/.test(article[field]), false, `${article.title} ${field} should not contain ??`);
     }
@@ -88,7 +112,7 @@ test('all articles have generated learning aids without garbled placeholders', (
   }
 });
 
-test('generated concept and quote aids use specific teacher-style explanations', () => {
+test('generated concept aids use specific teacher-style explanations', () => {
   const articles = loadArticlesForTest();
   const forbiddenGenericCopy = [
     '复盘时补一句',
@@ -100,11 +124,9 @@ test('generated concept and quote aids use specific teacher-style explanations',
   for (const article of articles) {
     for (const phrase of forbiddenGenericCopy) {
       assert.equal(article.concepts.includes(phrase), false, `${article.title} concepts should not use "${phrase}"`);
-      assert.equal(article.quotes.includes(phrase), false, `${article.title} quotes should not use "${phrase}"`);
     }
 
     assert.match(article.concepts, /本文语境|英文表达|工程理解/, `${article.title} concepts should teach reading and engineering context`);
-    assert.match(article.quotes, /中文理解|英文表达|工程启发/, `${article.title} quotes should explain meaning, English, and engineering insight`);
   }
 });
 
